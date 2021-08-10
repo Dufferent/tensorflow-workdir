@@ -36,9 +36,9 @@ def Gray_A_Bin_Deal(img,w,h):
             img[y,x] = [gray,gray,gray]
 
 # CNN FUNCTIONS
-BATCH_SIZE = 32
-IMG_W = 227
-IMG_H = 227
+BATCH_SIZE = 96
+IMG_W = 150
+IMG_H = 150
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # base下默认使用cpu
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # 最优化的线程数
@@ -233,14 +233,14 @@ if __name__ == "__main__":
     # fd.close()
     
 # CCN Test (Tensorflow Framework)
-    # nums,all_images_path,all_images_labels,class_name,label_dict = Data_PreProcess()
-    # ds = tf.data.Dataset.from_tensor_slices((all_images_path[:1000], all_images_labels[:1000]))
-    # image_label_ds = ds.map(load_and_preprocess_from_path_label)
-    # ds = image_label_ds.apply(
-    # tf.data.experimental.shuffle_and_repeat(buffer_size=2000))
-    # ds = ds.batch(BATCH_SIZE)
-    # ds = ds.prefetch(buffer_size=AUTOTUNE)
-    
+    nums,all_images_path,all_images_labels,class_name,label_dict = Data_PreProcess()
+    ds = tf.data.Dataset.from_tensor_slices((all_images_path[:2000], all_images_labels[:2000]))
+    image_label_ds = ds.map(load_and_preprocess_from_path_label)
+    ds = image_label_ds.apply(
+    tf.data.experimental.shuffle_and_repeat(buffer_size=2000))
+    ds = ds.batch(BATCH_SIZE)
+    ds = ds.prefetch(buffer_size=AUTOTUNE)
+    # AlexNet
     # model = models.Sequential()
     # model.add(layers.Conv2D(96, (11, 11), strides=(4, 4), activation='relu', input_shape=(IMG_W, IMG_H, 3)))
     # model.add(layers.MaxPooling2D((3, 3), strides=(2, 2)))
@@ -251,20 +251,33 @@ if __name__ == "__main__":
     # model.add(layers.Conv2D(256, (3, 3), padding='same', activation='relu'))
     # model.add(layers.MaxPooling2D((3, 3), strides=(2, 2)))
     # model.add(layers.Flatten())
-    # model.add(layers.Dense(4096,kernel_regularizer=regularizers.l2(0.001), activation='relu'))
-    # model.add(layers.Dense(4096,kernel_regularizer=regularizers.l2(0.001), activation='relu'))
-    # model.add(layers.Dense(1000,kernel_regularizer=regularizers.l2(0.001), activation='relu'))
-    # model.add(layers.Dense(64, kernel_regularizer=regularizers.l2(0.001), activation='relu'))
-    # model.add(layers.Dense(30, kernel_regularizer=regularizers.l2(0.001), activation='relu'))
+    # model.add(layers.Dense(4096))
+    # model.add(layers.Dense(4096))
     # model.add(layers.Dense(len(class_name)))
     # print (model.summary())
+    # CNN
+    # 150x150x3 -> 148x148x32 -> 79x79x32 -> 77x77x64 -> 38x38x64 -> 36x36x128 -> 18x18x128
+    model = models.Sequential()
+    model.add(layers.Conv2D(32, (3, 3), strides=(1, 1), activation='relu', input_shape=(IMG_W, IMG_H, 3)))
+    model.add(layers.MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D((3, 3), strides=(2, 2)))
+    model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D((2, 2), strides=(2, 2)))
+    
+    model.add(layers.Flatten())
+    model.add(layers.Dense(512,activation='relu'))
+    model.add(layers.Dense(len(class_name),activation='sigmoid'))
+    print (model.summary())
 
-    # model.compile(optimizer='adam',
-    #           loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    #           metrics=['accuracy'])
-    # history = model.fit(ds, epochs=3,steps_per_epoch=int(1000/BATCH_SIZE))
-    # prb_mdl = tf.keras.Sequential([model,tf.keras.layers.Softmax()])
-    # Test_Img("./ts",prb_mdl,class_name)
+    model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+    history = model.fit(ds, epochs=20,steps_per_epoch=int(2000/BATCH_SIZE))
+    prb_mdl = tf.keras.Sequential([model,tf.keras.layers.Softmax()])
+    Test_Img("./ts",prb_mdl,class_name)
     
 # tensor & numpy test
     # img_by_tf = tf.io.read_file("./ts/cat.4001.jpg")
@@ -333,7 +346,7 @@ if __name__ == "__main__":
     # 保存模型
     # tf.keras.models.save_model(model,'./minst')
     # 加载模型
-    model = tf.keras.models.load_model('./minst')
+    # model = tf.keras.models.load_model('./minst')
     
     # dataset load
     # model.compile(optimizer='adam',
@@ -342,39 +355,39 @@ if __name__ == "__main__":
     # model.fit( ds, epochs = 3, steps_per_epoch=int(10000/BATCH_SIZE))
     
     # 预测模型
-    prb_mdl = tf.keras.Sequential([model,tf.keras.layers.Softmax()])
+    # prb_mdl = tf.keras.Sequential([model,tf.keras.layers.Softmax()])
     # Minst_Predict(215,5,ts_images_tensor,ts_labels_tensor,prb_mdl,ts_all)
     
-    cap = cv.VideoCapture(0)
-    if not cap.isOpened():
-        print ('camera open failed...')
-        exit(-1)
-    plt.ion()
-    while True:
-        ret,img = cap.read()
-        if ret == True:
+    # cap = cv.VideoCapture(0)
+    # if not cap.isOpened():
+    #     print ('camera open failed...')
+    #     exit(-1)
+    # plt.ion()
+    # while True:
+    #     ret,img = cap.read()
+    #     if ret == True:
             # img 为numpy array
             # resize
-            img = cv.resize(img,(32,32),interpolation=cv.INTER_LINEAR)
+            # img = cv.resize(img,(32,32),interpolation=cv.INTER_LINEAR)
             # gray
-            img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
-            Gray_A_Bin_Deal(img,img.shape[1],img.shape[0])
-            tf_img = tf.image.resize(img,[ 32, 32])
-            tf_tensor = tf_img/255.0
-            tf_tensor = (np.expand_dims(tf_tensor.numpy(),0))
-            predict = prb_mdl.predict(tf_tensor)
-            max = 0
-            num = -1
-            for p in range(0,9):
-                if max < predict[0][p]:
-                    max = predict[0][p]
-                    num = p
-            if not num == -1:
-                print ("Find Num :[%d]"%num)
+            # img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
+            # Gray_A_Bin_Deal(img,img.shape[1],img.shape[0])
+            # tf_img = tf.image.resize(img,[ 32, 32])
+            # tf_tensor = tf_img/255.0
+            # tf_tensor = (np.expand_dims(tf_tensor.numpy(),0))
+            # predict = prb_mdl.predict(tf_tensor)
+            # max = 0
+            # num = -1
+            # for p in range(0,9):
+            #     if max < predict[0][p]:
+            #         max = predict[0][p]
+            #         num = p
+            # if not num == -1:
+            #     print ("Find Num :[%d]"%num)
             # cv.imshow("cam-gray",img)
             # cv.waitKey(10)
-            plt.imshow(tf_img.numpy().astype(np.uint8))
-            plt.show()
-            plt.pause(0.1)
-            plt.clf()
+            # plt.imshow(tf_img.numpy().astype(np.uint8))
+            # plt.show()
+            # plt.pause(0.1)
+            # plt.clf()
     
